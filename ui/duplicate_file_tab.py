@@ -21,21 +21,47 @@ class DuplicateFileTab(QWidget):
         self.init_ui()
 
     def init_ui(self):
+
         layout = QVBoxLayout()
 
         # 顶部控制面板
         top_layout = QHBoxLayout()
 
-        # 目录选择
+        # 目录选择 - 设置为只读，只能通过浏览选择
         self.dir_edit = QLineEdit()
         self.dir_edit.setPlaceholderText("请选择要扫描的目录...")
         self.dir_edit.setMinimumWidth(300)
+        self.dir_edit.setReadOnly(True)  # 设置为只读，禁止手动输入
+        self.dir_edit.setStyleSheet("""
+            QLineEdit:read-only {
+                background-color: #f5f5f5;
+                color: #666666;
+                border: 1px solid #cccccc;
+            }
+        """)
         top_layout.addWidget(QLabel("扫描目录:"))
         top_layout.addWidget(self.dir_edit)
 
         self.browse_btn = QPushButton("浏览...")
         self.browse_btn.clicked.connect(self.browse_directory)
         top_layout.addWidget(self.browse_btn)
+
+        # 全盘扫描按钮
+        self.scan_all_disks_btn = QPushButton("全盘扫描")
+        self.scan_all_disks_btn.clicked.connect(self.scan_all_disks)
+        self.scan_all_disks_btn.setToolTip("扫描电脑上的所有硬盘")
+        self.scan_all_disks_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #27ae60;
+            }
+        """)
+        top_layout.addWidget(self.scan_all_disks_btn)
 
         # 文件类型过滤
         top_layout.addWidget(QLabel("文件类型:"))
@@ -253,12 +279,207 @@ class DuplicateFileTab(QWidget):
 
         return ["*"]
 
+    def scan_all_disks(self):
+        """全盘扫描 - 扫描电脑上的所有硬盘"""
+        if self.is_scanning:
+            QMessageBox.warning(self, "警告", "扫描正在进行中，请等待当前扫描完成")
+            return
+
+        # 给用户提示
+        reply = QMessageBox.information(
+            self, "全盘扫描说明",
+            "全盘扫描说明：\n\n"
+            "1. 扫描会跳过系统文件和权限不足的文件\n"
+            "2. 扫描过程中不会请求管理员权限\n"
+            "3. 扫描时间取决于硬盘大小和文件数量\n"
+            "4. 可以随时点击'停止扫描'按钮中断\n\n"
+            "点击确定开始扫描",
+            QMessageBox.Yes | QMessageBox.Cancel,
+            QMessageBox.Yes
+        )
+
+        if reply == QMessageBox.Yes:
+            # 获取所有硬盘分区
+            all_disks = self.get_all_disks()
+
+            if not all_disks:
+                QMessageBox.warning(self, "警告", "未找到可用的硬盘分区")
+                return
+
+            # 显示全盘扫描信息
+            disk_info = "\n".join(all_disks)
+            QMessageBox.information(self, "全盘扫描", f"将扫描以下硬盘分区:\n\n{disk_info}")
+
+            # 设置全盘扫描状态
+            self.is_scanning = True
+
+            # 禁用开始扫描按钮，启用停止按钮
+            self.scan_btn.setEnabled(False)
+            self.stop_btn.setEnabled(True)
+            self.scan_all_disks_btn.setEnabled(False)  # 禁用全盘扫描按钮
+
+            # 禁用删除按钮
+            self.set_delete_buttons_enabled(False)
+
+            # 清空之前的扫描结果
+            self.table.setRowCount(0)
+            self.file_objects = []
+            self.duplicate_groups = {}
+            self.shortcuts = []
+            self.update_stats()
+
+            # 重置进度条
+            self.progress_bar.setValue(0)
+            self.progress_label.setText("正在准备全盘扫描...")
+            self.current_file_label.setText("正在获取硬盘信息...")
+
+            # 获取参数
+            file_types = self.get_file_types()
+            min_size_kb = self.min_size_spin.value()
+            min_size_bytes = min_size_kb * 1024  # 转换为字节
+            exclude_system = self.exclude_system_check.isChecked()
+
+            # 创建并启动扫描线程
+            self.scanner_thread = DuplicateScannerThread(
+                directories=all_disks,  # 传入所有硬盘分区
+                file_types=file_types,
+                min_size=min_size_bytes,
+                exclude_system=exclude_system
+            )
+
+            # 连接信号
+            self.scanner_thread.scan_progress.connect(self.update_scan_progress)
+            self.scanner_thread.file_processed.connect(self.update_file_progress)
+            self.scanner_thread.duplicate_found.connect(self.add_duplicate_file)
+            self.scanner_thread.scan_finished.connect(self.on_scan_finished)
+
+            self.scanner_thread.start()
+
+            self.progress_label.setText("正在进行全盘扫描...")
+            self.current_file_label.setText(f"正在扫描 {len(all_disks)} 个硬盘分区...")
+
+    def get_all_disks(self):
+        """获取电脑上的所有硬盘分区"""
+        import os
+        import sys
+
+        disks = []
+
+        if sys.platform == 'win32':  # Windows系统
+            import ctypes
+            import string
+
+            # 获取逻辑驱动器列表
+            drives = []
+            bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    drive = f"{letter}:\\"
+                    drives.append(drive)
+                bitmask >>= 1
+
+            # 检查每个驱动器是否可用
+            for drive in drives:
+                try:
+                    # 检查驱动器类型和可用性
+                    drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive)
+
+                    # DRIVE_FIXED = 3 (本地硬盘)
+                    # DRIVE_REMOVABLE = 2 (可移动磁盘)
+                    # DRIVE_REMOTE = 4 (网络驱动器)
+                    # DRIVE_CDROM = 5 (光盘)
+                    # DRIVE_RAMDISK = 6 (RAM磁盘)
+
+                    # 只扫描本地硬盘和可移动磁盘（不包括光盘、网络驱动器等）
+                    if drive_type in [2, 3, 6]:  # 可移动磁盘、本地硬盘、RAM磁盘
+                        # 检查驱动器是否就绪
+                        if os.path.exists(drive):
+                            # 获取驱动器信息
+                            try:
+                                import psutil
+                                usage = psutil.disk_usage(drive)
+                                total_gb = usage.total / (1024 * 1024 * 1024)
+                                free_gb = usage.free / (1024 * 1024 * 1024)
+                                used_gb = usage.used / (1024 * 1024 * 1024)
+
+                                # 只添加有足够空间的驱动器（避免扫描CD-ROM等）
+                                if total_gb > 0.1:  # 大于100MB的驱动器
+                                    disks.append(drive)
+                                    print(
+                                        f"找到驱动器: {drive} (总空间: {total_gb:.1f}GB, 已用: {used_gb:.1f}GB, 可用: {free_gb:.1f}GB)")
+                            except ImportError:
+                                # 如果没有psutil，简单检查
+                                if os.path.isdir(drive):
+                                    disks.append(drive)
+                                    print(f"找到驱动器: {drive}")
+                except Exception as e:
+                    print(f"检查驱动器 {drive} 失败: {e}")
+
+        elif sys.platform == 'darwin':  # macOS
+            # macOS的挂载点通常在 /Volumes
+            volumes_path = "/Volumes"
+            if os.path.exists(volumes_path):
+                for item in os.listdir(volumes_path):
+                    volume_path = os.path.join(volumes_path, item)
+                    if os.path.isdir(volume_path):
+                        disks.append(volume_path)
+                        print(f"找到卷: {volume_path}")
+
+            # 添加根目录
+            disks.append("/")
+
+        else:  # Linux/Unix
+            # 检查常见的挂载点
+            import subprocess
+
+            try:
+                # 使用df命令获取挂载点
+                result = subprocess.run(['df', '-h'], capture_output=True, text=True)
+                lines = result.stdout.strip().split('\n')
+
+                for line in lines[1:]:  # 跳过标题行
+                    parts = line.split()
+                    if len(parts) >= 6:
+                        mount_point = parts[5]
+                        # 排除系统目录，只扫描数据目录
+                        if mount_point and mount_point != '/' and not mount_point.startswith('/boot'):
+                            disks.append(mount_point)
+                            print(f"找到挂载点: {mount_point}")
+
+                # 添加根目录
+                disks.append("/")
+            except:
+                # 如果df命令失败，使用常见目录
+                common_dirs = ['/', '/home', '/mnt', '/media']
+                for dir_path in common_dirs:
+                    if os.path.exists(dir_path):
+                        disks.append(dir_path)
+
+        # 如果没有找到任何磁盘，添加一个默认目录
+        if not disks:
+            if sys.platform == 'win32':
+                disks = ['C:\\']
+            else:
+                disks = ['/']
+
+        return disks
+
     def start_scan(self):
         """开始扫描"""
         directory = self.dir_edit.text().strip()
-        if not directory or not os.path.exists(directory):
-            QMessageBox.warning(self, "警告", "请选择有效的扫描目录")
+
+        # 双重验证：不仅检查是否存在，还要检查是否是通过浏览选择的
+        if not directory:
+            QMessageBox.warning(self, "警告", "请先通过浏览按钮选择扫描目录")
             return
+
+        if not os.path.exists(directory):
+            QMessageBox.warning(self, "警告", "选择的目录不存在，请重新选择")
+            self.dir_edit.clear()  # 清空输入框
+            return
+
+        print(f"开始扫描目录: {directory}")
 
         # 设置扫描状态
         self.is_scanning = True
@@ -309,43 +530,69 @@ class DuplicateFileTab(QWidget):
 
     def stop_scan(self):
         """停止扫描"""
-        if self.scanner_thread and self.scanner_thread.isRunning():
+        print("尝试停止扫描...")
+
+        if self.scanner_thread:
+            print(f"停止线程: {self.scanner_thread}")
+
+            # 先设置停止标志
             self.scanner_thread.stop()
-            self.scanner_thread.wait()
-            self.progress_label.setText("扫描已停止")
-            self.current_file_label.setText("扫描被用户停止")
+
+            # 等待一小段时间让线程响应
+            if not self.scanner_thread.wait(500):  # 等待500ms
+                print("线程没有及时响应，尝试强制终止")
+                # 强制终止线程
+                self.scanner_thread.terminate()
+                if not self.scanner_thread.wait(2000):  # 再等待2秒
+                    print("无法终止线程")
+
+            print("线程已停止")
 
         # 恢复按钮状态
         self.is_scanning = False
         self.scan_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        self.scan_all_disks_btn.setEnabled(True)  # 重新启用全盘扫描按钮
 
-        # 如果有结果，启用删除按钮
-        if len(self.file_objects) > 0:
-            self.set_delete_buttons_enabled(True)
+        # 更新界面状态
+        self.progress_label.setText("扫描已停止")
+        self.current_file_label.setText("用户取消了扫描")
 
     def update_scan_progress(self, current: int, total: int, text: str):
         """更新扫描进度"""
-        progress = min(current, 100)  # 假设 current 已经是百分比
+        # 这里 current 应该是已扫描大小的百分比
+        progress = min(current, 100)  # 确保不超过100%
         self.progress_bar.setValue(progress)
 
-        if "扫描完成" in text or "完成" in text:
-            self.progress_label.setText(f"扫描完成")
+        # 更新标签文本
+        if text.startswith("扫描:"):
+            # 只显示文件名部分，去掉"扫描:"前缀
+            filename = text[3:] if len(text) > 3 else text
+            self.current_file_label.setText(f"正在扫描: {filename}")
+            self.progress_label.setText(f"扫描进度: {progress}%")
+        elif "计算:" in text:
+            filename = text.split("计算:")[1] if "计算:" in text else text
+            self.current_file_label.setText(f"正在计算: {filename}")
+            self.progress_label.setText(f"计算进度: {progress}%")
+        elif "扫描完成" in text:
+            self.progress_label.setText("扫描完成")
+            self.current_file_label.setText(text)
+        else:
+            self.progress_label.setText(text)
+            self.current_file_label.setText(text)
+
+    def update_file_progress(self, progress: int, total_files: int, text: str):
+        """更新文件处理进度（按文件大小）"""
+        # 这里的 progress 应该是已扫描大小的百分比
+        progress = min(progress, 100)
+        self.progress_bar.setValue(progress)
+
+        if "完成" in text:
+            self.progress_label.setText("扫描完成")
         else:
             self.progress_label.setText(f"扫描进度: {progress}%")
 
         self.current_file_label.setText(text)
-
-    def update_file_progress(self, progress: int, total_files: int, text: str):
-        """更新文件处理进度（按文件大小）"""
-        # 这里的 progress 已经是 0-100 的百分比
-        # 将文件处理进度映射到 50-100%
-        adjusted_progress = 50 + int(progress / 2)  # 文件处理占总进度的50%
-        adjusted_progress = min(adjusted_progress, 100)  # 确保不超过100%
-
-        self.progress_bar.setValue(adjusted_progress)
-        self.progress_label.setText(f"文件处理进度: {progress}%")
-        self.current_file_label.setText(f"{text} (已处理 {total_files} 个文件)")
 
     def add_duplicate_file(self, file_info, group_id):
         """添加重复文件到表格"""
@@ -409,26 +656,36 @@ class DuplicateFileTab(QWidget):
 
     def on_scan_finished(self, file_objects, total_files, duplicate_groups, duplicate_files):
         """扫描完成"""
+        print(
+            f"收到 scan_finished 信号: total_files={total_files}, duplicate_groups={duplicate_groups}, duplicate_files={duplicate_files}")
+
         # 设置扫描状态
         self.is_scanning = False
+
+        print(f"扫描完成，找到 {len(file_objects)} 个文件")
 
         # 保存扫描结果
         self.file_objects = file_objects
 
         # 构建重复组字典
         self.duplicate_groups = {}
+        duplicate_file_list = []
+
         for file_info in file_objects:
             if file_info.is_duplicate and file_info.duplicate_group > 0:
                 if file_info.duplicate_group not in self.duplicate_groups:
                     self.duplicate_groups[file_info.duplicate_group] = []
                 self.duplicate_groups[file_info.duplicate_group].append(file_info)
+                duplicate_file_list.append(file_info)
+
+        print(f"找到 {len(duplicate_file_list)} 个重复文件，{len(self.duplicate_groups)} 个重复组")
 
         # 清空表格
         self.table.setRowCount(0)
 
-        # 将所有文件添加到表格中（不仅仅是重复文件）
-        for file_info in file_objects:
-            self.add_duplicate_file(file_info, file_info.duplicate_group if file_info.is_duplicate else 0)
+        # 只添加重复文件到表格
+        for file_info in duplicate_file_list:
+            self.add_duplicate_file(file_info, file_info.duplicate_group)
 
         # 更新进度条
         self.progress_bar.setValue(100)
@@ -438,6 +695,7 @@ class DuplicateFileTab(QWidget):
         # 恢复按钮状态
         self.scan_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        self.scan_all_disks_btn.setEnabled(True)  # 重新启用全盘扫描按钮
 
         # 如果有结果，启用删除按钮
         if duplicate_files > 0:

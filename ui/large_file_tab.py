@@ -27,6 +27,14 @@ class LargeFileTab(QWidget):
         self.dir_edit = QLineEdit()
         self.dir_edit.setPlaceholderText("请选择要扫描的目录...")
         self.dir_edit.setMinimumWidth(300)
+        self.dir_edit.setReadOnly(True)  # 设置为只读，禁止手动输入
+        self.dir_edit.setStyleSheet("""
+            QLineEdit:read-only {
+                background-color: #f5f5f5;
+                color: #666666;
+                border: 1px solid #cccccc;
+            }
+        """)
         top_layout.addWidget(QLabel("扫描目录:"))
         top_layout.addWidget(self.dir_edit)
 
@@ -172,8 +180,15 @@ class LargeFileTab(QWidget):
     def start_scan(self):
         """开始扫描"""
         directory = self.dir_edit.text().strip()
-        if not directory or not os.path.exists(directory):
-            QMessageBox.warning(self, "警告", "请选择有效的扫描目录")
+
+        # 双重验证
+        if not directory:
+            QMessageBox.warning(self, "警告", "请先通过浏览按钮选择扫描目录")
+            return
+
+        if not os.path.exists(directory):
+            QMessageBox.warning(self, "警告", "选择的目录不存在，请重新选择")
+            self.dir_edit.clear()  # 清空输入框
             return
 
         # 设置扫描状态
