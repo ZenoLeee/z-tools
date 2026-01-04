@@ -1,11 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from ui.scanner_tab import ShortcutScannerTab
+from ui.cleanup_tab import SystemCleanupTab
 from ui.system_tab import SystemToolsTab
 from ui.network_tab import NetworkToolsTab
-from ui.duplicate_file_tab import DuplicateFileTab
-from ui.large_file_tab import LargeFileTab
-from ui.empty_folder_tab import EmptyFolderTab
 from core.version_manager import VersionManager, UpdateDialog
 
 
@@ -84,29 +81,17 @@ class WindowsToolbox(tk.Tk):
         # 创建Notebook（标签页控件）
         self.notebook = ttk.Notebook(self)
 
-        # 快捷方式扫描标签页
-        self.scanner_tab = ShortcutScannerTab(self.notebook)
-        self.notebook.add(self.scanner_tab, text="无效快捷方式清理")
-
-        # 重复文件扫描标签页
-        self.duplicate_file_tab = DuplicateFileTab(self.notebook)
-        self.notebook.add(self.duplicate_file_tab, text="重复文件清理")
-
-        # 大文件扫描标签页
-        self.large_file_tab = LargeFileTab(self.notebook)
-        self.notebook.add(self.large_file_tab, text="大文件清理")
-
-        # 空文件夹扫描标签页
-        self.empty_folder_tab = EmptyFolderTab(self.notebook)
-        self.notebook.add(self.empty_folder_tab, text="空文件夹清理")
+        # 系统清理标签页（整合了4个清理功能）
+        self.cleanup_tab = SystemCleanupTab(self.notebook)
+        self.notebook.add(self.cleanup_tab, text="  🧹 系统清理  ")
 
         # 系统工具标签页
         self.system_tools_tab = SystemToolsTab(self.notebook)
-        self.notebook.add(self.system_tools_tab, text="系统工具")
+        self.notebook.add(self.system_tools_tab, text="  ⚙️ 系统工具  ")
 
         # 网络工具标签页
         self.network_tools_tab = NetworkToolsTab(self.notebook)
-        self.notebook.add(self.network_tools_tab, text="网络工具")
+        self.notebook.add(self.network_tools_tab, text="  🌐 网络工具  ")
 
         self.notebook.pack(expand=True, fill='both', padx=5, pady=5)
 
@@ -180,53 +165,8 @@ Windows工具箱
 
     def on_closing(self):
         """关闭窗口事件"""
-        # 停止快捷方式扫描线程
-        if hasattr(self.scanner_tab, 'scanner_thread') and self.scanner_tab.scanner_thread:
-            if self.scanner_tab.scanner_thread.is_alive():
-                self.scanner_tab.scanner_thread.stop()
-                self.scanner_tab.scanner_thread.join(timeout=1)
-
-        # 停止快捷方式恢复线程
-        if hasattr(self.scanner_tab, 'recovery_thread') and self.scanner_tab.recovery_thread:
-            if self.scanner_tab.recovery_thread.is_alive():
-                self.scanner_tab.recovery_thread.stop()
-                self.scanner_tab.recovery_thread.join(timeout=1)
-
-        # 停止重复文件扫描线程
-        if hasattr(self.duplicate_file_tab, 'scanner_thread') and self.duplicate_file_tab.scanner_thread:
-            if self.duplicate_file_tab.scanner_thread.is_alive():
-                self.duplicate_file_tab.scanner_thread.stop()
-                self.duplicate_file_tab.scanner_thread.join(timeout=1)
-
-        # 停止重复文件删除线程
-        if hasattr(self.duplicate_file_tab, 'delete_thread') and self.duplicate_file_tab.delete_thread:
-            if self.duplicate_file_tab.delete_thread.is_alive():
-                self.duplicate_file_tab.delete_thread.stop()
-                self.duplicate_file_tab.delete_thread.join(timeout=1)
-
-        # 停止大文件扫描线程
-        if hasattr(self.large_file_tab, 'scanner_thread') and self.large_file_tab.scanner_thread:
-            if self.large_file_tab.scanner_thread.is_alive():
-                self.large_file_tab.scanner_thread.stop()
-                self.large_file_tab.scanner_thread.join(timeout=1)
-
-        # 停止大文件删除线程
-        if hasattr(self.large_file_tab, 'delete_thread') and self.large_file_tab.delete_thread:
-            if self.large_file_tab.delete_thread.is_alive():
-                self.large_file_tab.delete_thread.stop()
-                self.large_file_tab.delete_thread.join(timeout=1)
-
-        # 停止空文件夹扫描线程
-        if hasattr(self.empty_folder_tab, 'scanner_thread') and self.empty_folder_tab.scanner_thread:
-            if self.empty_folder_tab.scanner_thread.is_alive():
-                self.empty_folder_tab.scanner_thread.stop()
-                self.empty_folder_tab.scanner_thread.join(timeout=1)
-
-        # 停止空文件夹删除线程
-        if hasattr(self.empty_folder_tab, 'delete_thread') and self.empty_folder_tab.delete_thread:
-            if self.empty_folder_tab.delete_thread.is_alive():
-                self.empty_folder_tab.delete_thread.stop()
-                self.empty_folder_tab.delete_thread.join(timeout=1)
+        # 停止清理标签页中的所有线程
+        self.cleanup_tab.on_closing()
 
         # 停止Ping线程
         if hasattr(self.network_tools_tab, 'ping_thread') and self.network_tools_tab.ping_thread:

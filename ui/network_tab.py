@@ -80,7 +80,7 @@ class NetworkToolsTab(tk.Frame):
                 bg='#E3F2FD', fg='#1976D2',
                 font=('Microsoft YaHei UI', 9),
                 relief='flat', cursor='hand2',
-                borderwidth=0, pady=5, padx=12
+                padx=12, pady=6
             )
             btn.pack(side='left', padx=3)
 
@@ -92,22 +92,22 @@ class NetworkToolsTab(tk.Frame):
             action_row, text="🚀 开始Ping测试",
             command=self.start_ping,
             bg='#4CAF50', fg='white',
-            font=('Microsoft YaHei UI', 10, 'bold'),
+            font=('Microsoft YaHei UI', 9, 'bold'),
             relief='flat', cursor='hand2',
-            borderwidth=0, pady=8, padx=20
+            padx=12, pady=6
         )
-        self.ping_btn.pack(side='left', padx=(0, 10))
+        self.ping_btn.pack(side='left', padx=3)
 
         self.stop_ping_btn = tk.Button(
             action_row, text="⏹ 停止",
             command=self.stop_ping,
             state='disabled',
             bg='#f44336', fg='white',
-            font=('Microsoft YaHei UI', 10),
+            font=('Microsoft YaHei UI', 9),
             relief='flat', cursor='hand2',
-            borderwidth=0, pady=8, padx=15
+            padx=12, pady=6
         )
-        self.stop_ping_btn.pack(side='left')
+        self.stop_ping_btn.pack(side='left', padx=3)
 
         # 网络诊断工具区域
         diag_frame = tk.LabelFrame(
@@ -133,8 +133,8 @@ class NetworkToolsTab(tk.Frame):
             command=self.show_network_info,
             bg='#FFFFFF', fg='#333333',
             font=('Microsoft YaHei UI', 9),
-            relief='solid', borderwidth=1, cursor='hand2',
-            pady=6, padx=15
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
         self.network_info_btn.pack(side='left', fill='x', expand=True, padx=3)
 
@@ -143,8 +143,8 @@ class NetworkToolsTab(tk.Frame):
             command=self.flush_dns,
             bg='#FFFFFF', fg='#333333',
             font=('Microsoft YaHei UI', 9),
-            relief='solid', borderwidth=1, cursor='hand2',
-            pady=6, padx=15
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
         self.flush_dns_btn.pack(side='left', fill='x', expand=True, padx=3)
 
@@ -153,8 +153,8 @@ class NetworkToolsTab(tk.Frame):
             command=self.show_arp_cache,
             bg='#FFFFFF', fg='#333333',
             font=('Microsoft YaHei UI', 9),
-            relief='solid', borderwidth=1, cursor='hand2',
-            pady=6, padx=15
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
         self.arp_cache_btn.pack(side='left', fill='x', expand=True, padx=3)
 
@@ -167,8 +167,8 @@ class NetworkToolsTab(tk.Frame):
             command=self.release_ip,
             bg='#FFFFFF', fg='#333333',
             font=('Microsoft YaHei UI', 9),
-            relief='solid', borderwidth=1, cursor='hand2',
-            pady=6, padx=15
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
         self.release_ip_btn.pack(side='left', fill='x', expand=True, padx=3)
 
@@ -177,8 +177,8 @@ class NetworkToolsTab(tk.Frame):
             command=self.renew_ip,
             bg='#FFFFFF', fg='#333333',
             font=('Microsoft YaHei UI', 9),
-            relief='solid', borderwidth=1, cursor='hand2',
-            pady=6, padx=15
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
         self.renew_ip_btn.pack(side='left', fill='x', expand=True, padx=3)
 
@@ -187,8 +187,8 @@ class NetworkToolsTab(tk.Frame):
             command=self.show_route_table,
             bg='#FFFFFF', fg='#333333',
             font=('Microsoft YaHei UI', 9),
-            relief='solid', borderwidth=1, cursor='hand2',
-            pady=6, padx=15
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
         self.route_table_btn.pack(side='left', fill='x', expand=True, padx=3)
 
@@ -206,19 +206,19 @@ class NetworkToolsTab(tk.Frame):
             bg='#FF9800', fg='white',
             font=('Microsoft YaHei UI', 9),
             relief='flat', cursor='hand2',
-            borderwidth=0, pady=5, padx=15
+            padx=12, pady=6
         )
-        self.clear_output_btn.pack(side='left', padx=(0, 8))
+        self.clear_output_btn.pack(side='left', padx=3)
 
         self.copy_output_btn = tk.Button(
             output_controls, text="📄 复制内容",
             command=self.copy_output,
-            bg='#607D8B', fg='white',
+            bg='#78909C', fg='white',
             font=('Microsoft YaHei UI', 9),
             relief='flat', cursor='hand2',
-            borderwidth=0, pady=5, padx=15
+            padx=12, pady=6
         )
-        self.copy_output_btn.pack(side='left')
+        self.copy_output_btn.pack(side='left', padx=3)
 
         # 输出文本框
         output_frame = tk.Frame(output_container, bg='white', relief='solid', borderwidth=1)

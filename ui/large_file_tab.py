@@ -152,20 +152,25 @@ class LargeFileTab(tk.Frame):
         button_frame.pack(fill='x', pady=(0, 10))
 
         self.scan_btn = tk.Button(
-            button_frame, text="开始扫描大文件",
+            button_frame, text="🔍 开始扫描",
             command=self.start_scan,
-            bg='#9b59b6', fg='white',
-            font=('Arial', 12, 'bold'),
-            height=2
+            bg='#9C27B0', fg='white',
+            font=('Microsoft YaHei UI', 9, 'bold'),
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
-        self.scan_btn.pack(side='left', padx=5)
+        self.scan_btn.pack(side='left', padx=3)
 
         self.stop_btn = tk.Button(
-            button_frame, text="停止扫描",
+            button_frame, text="⏹ 停止",
             command=self.stop_scan,
-            state='disabled'
+            state='disabled',
+            bg='#f44336', fg='white',
+            font=('Microsoft YaHei UI', 9),
+            relief='flat', cursor='hand2',
+            padx=12, pady=6
         )
-        self.stop_btn.pack(side='left', padx=5)
+        self.stop_btn.pack(side='left', padx=3)
 
         # 进度条区域
         progress_frame = tk.Frame(main_frame)
@@ -230,7 +235,10 @@ class LargeFileTab(tk.Frame):
         bottom_button_frame = tk.Frame(main_frame)
         bottom_button_frame.pack(fill='x', pady=(10, 0))
 
-        self.open_btn = tk.Button(bottom_button_frame, text="打开所在文件夹", command=self.open_file_folder)
+        self.open_btn = tk.Button(
+            bottom_button_frame, text="打开所在文件夹",
+            command=self.open_file_folder
+        )
         self.open_btn.pack(side='left', padx=5)
 
         self.delete_btn = tk.Button(

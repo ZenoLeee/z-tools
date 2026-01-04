@@ -27,24 +27,28 @@ class ShortcutScannerTab(tk.Frame):
 
         # 扫描按钮
         self.scan_btn = tk.Button(
-            top_frame, text="开始扫描所有磁盘的快捷方式",
+            top_frame, text="🔍 开始扫描",
             command=self.start_scan,
             bg='#4CAF50', fg='white',
-            font=('Arial', 12, 'bold'),
-            height=2
+            font=('Microsoft YaHei UI', 9, 'bold'),
+            relief='flat',
+            cursor='hand2',
+            padx=12, pady=6
         )
-        self.scan_btn.pack(side='left', padx=5)
+        self.scan_btn.pack(side='left', padx=3)
 
         # 停止扫描按钮
         self.stop_btn = tk.Button(
-            top_frame, text="停止扫描",
+            top_frame, text="⏹ 停止",
             command=self.stop_scan,
             state='disabled',
             bg='#f44336', fg='white',
-            font=('Arial', 12),
-            height=2
+            font=('Microsoft YaHei UI', 9),
+            relief='flat',
+            cursor='hand2',
+            padx=12, pady=6
         )
-        self.stop_btn.pack(side='left', padx=5)
+        self.stop_btn.pack(side='left', padx=3)
 
         # 搜索框
         tk.Label(top_frame, text="搜索:").pack(side='left', padx=(20, 5))
@@ -118,37 +122,49 @@ class ShortcutScannerTab(tk.Frame):
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill='x', pady=(10, 0))
 
-        self.open_btn = tk.Button(button_frame, text="打开所在文件夹", command=self.open_shortcut_folder)
+        self.open_btn = tk.Button(
+            button_frame,
+            text="打开所在文件夹",
+            command=self.open_shortcut_folder
+        )
         self.open_btn.pack(side='left', padx=5)
 
-        self.run_btn = tk.Button(button_frame, text="尝试运行", command=self.run_shortcut)
+        self.run_btn = tk.Button(
+            button_frame,
+            text="运行",
+            command=self.run_shortcut
+        )
         self.run_btn.pack(side='left', padx=5)
 
         self.delete_btn = tk.Button(
-            button_frame, text="删除选中的",
+            button_frame,
+            text="删除选中的",
             command=self.delete_shortcut,
-            bg='#ff6b6b', fg='white'
+            bg='#E74C3C', fg='white'
         )
         self.delete_btn.pack(side='left', padx=5)
 
         self.delete_all_btn = tk.Button(
-            button_frame, text="删除全部",
+            button_frame,
+            text="删除全部",
             command=self.delete_all_shortcuts,
-            bg='#ff4757', fg='white'
+            bg='#E74C3C', fg='white'
         )
         self.delete_all_btn.pack(side='left', padx=5)
 
         self.recover_selected_btn = tk.Button(
-            button_frame, text="恢复选中",
+            button_frame,
+            text="恢复选中的",
             command=self.recover_selected_shortcuts,
-            bg='#2196F3', fg='white'
+            bg='#64B5F6', fg='white'
         )
         self.recover_selected_btn.pack(side='left', padx=5)
 
         self.recover_all_btn = tk.Button(
-            button_frame, text="尝试恢复全部",
+            button_frame,
+            text="恢复全部",
             command=self.recover_all_shortcuts,
-            bg='#3F51B5', fg='white'
+            bg='#42A5F5', fg='white'
         )
         self.recover_all_btn.pack(side='left', padx=5)
 
