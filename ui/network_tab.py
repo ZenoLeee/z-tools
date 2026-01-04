@@ -1,184 +1,288 @@
 import subprocess
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+import tkinter as tk
+from tkinter import ttk, messagebox
 from core.network_tools import PingThread
 
-class NetworkToolsTab(QWidget):
+
+class NetworkToolsTab(tk.Frame):
     """网络工具标签页"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent)
         self.ping_thread = None
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout()
+        # 创建主容器
+        main_container = tk.Frame(self, bg='#F5F7FA')
+        main_container.pack(expand=True, fill='both', padx=10, pady=10)
 
-        # Ping控制面板
-        ping_group = QGroupBox("网络连接测试")
-        ping_layout = QVBoxLayout()
+        # 顶部控制区域 - Ping测试
+        ping_frame = tk.LabelFrame(
+            main_container,
+            text=" 网络连接测试 ",
+            bg='#F5F7FA',
+            font=('Microsoft YaHei UI', 11, 'bold'),
+            fg='#333333',
+            padx=15, pady=15
+        )
+        ping_frame.pack(fill='x', pady=(0, 10))
 
-        # IP地址输入
-        ip_layout = QHBoxLayout()
-        ip_layout.addWidget(QLabel("目标地址:"))
-        self.ip_edit = QLineEdit()
-        self.ip_edit.setPlaceholderText("例如: 192.168.1.1 或 www.google.com")
-        self.ip_edit.setText("8.8.8.8")
-        ip_layout.addWidget(self.ip_edit)
+        # IP地址输入行
+        input_row = tk.Frame(ping_frame, bg='#F5F7FA')
+        input_row.pack(fill='x', pady=(0, 10))
 
-        # Ping次数
-        ip_layout.addWidget(QLabel("次数:"))
-        self.ping_count_combo = QComboBox()
-        self.ping_count_combo.addItems(["1", "4", "8", "16"])
-        self.ping_count_combo.setCurrentIndex(1)  # 默认4次
-        ip_layout.addWidget(self.ping_count_combo)
+        tk.Label(
+            input_row, text="目标地址:",
+            bg='#F5F7FA', font=('Microsoft YaHei UI', 10)
+        ).pack(side='left', padx=(0, 8))
 
-        ping_layout.addLayout(ip_layout)
+        self.ip_edit = tk.Entry(
+            input_row, font=('Microsoft YaHei UI', 10),
+            relief='solid', borderwidth=1
+        )
+        self.ip_edit.insert(0, "8.8.8.8")
+        self.ip_edit.pack(side='left', fill='x', expand=True, padx=(0, 10))
 
-        # Ping按钮
-        button_layout = QHBoxLayout()
-        self.ping_btn = QPushButton("开始Ping测试")
-        self.ping_btn.clicked.connect(self.start_ping)
-        button_layout.addWidget(self.ping_btn)
+        tk.Label(
+            input_row, text="次数:",
+            bg='#F5F7FA', font=('Microsoft YaHei UI', 10)
+        ).pack(side='left', padx=(0, 8))
 
-        self.stop_ping_btn = QPushButton("停止")
-        self.stop_ping_btn.clicked.connect(self.stop_ping)
-        self.stop_ping_btn.setEnabled(False)
-        button_layout.addWidget(self.stop_ping_btn)
+        self.ping_count_combo = ttk.Combobox(
+            input_row, values=["1", "4", "8", "16"],
+            width=5, state='readonly', font=('Microsoft YaHei UI', 9)
+        )
+        self.ping_count_combo.current(1)
+        self.ping_count_combo.pack(side='left')
 
-        button_layout.addStretch()
+        # 快速测试按钮
+        quick_test_row = tk.Frame(ping_frame, bg='#F5F7FA')
+        quick_test_row.pack(fill='x', pady=(0, 10))
 
-        # 常用地址按钮
-        common_ips_layout = QHBoxLayout()
-        common_ips_layout.addWidget(QLabel("快速测试:"))
+        tk.Label(
+            quick_test_row, text="快速测试:",
+            bg='#F5F7FA', font=('Microsoft YaHei UI', 10)
+        ).pack(side='left', padx=(0, 10))
 
-        common_ips = [
-            ("本地", "127.0.0.1"),
-            ("网关", "192.168.1.1"),
-            ("谷歌DNS", "8.8.8.8"),
-            ("百度", "www.baidu.com"),
-            ("腾讯", "www.qq.com")
+        quick_buttons = [
+            ("🏠 本地", "127.0.0.1"),
+            ("🌐 谷歌DNS", "8.8.8.8"),
+            ("🔍 百度", "www.baidu.com"),
+            ("🐧 腾讯", "www.qq.com"),
+            ("📡 网关", "192.168.1.1")
         ]
 
-        for name, ip in common_ips:
-            btn = QPushButton(name)
-            btn.clicked.connect(lambda checked, ip=ip: self.set_ip_address(ip))
-            common_ips_layout.addWidget(btn)
+        for name, ip in quick_buttons:
+            btn = tk.Button(
+                quick_test_row, text=name,
+                command=lambda i=ip: self.set_ip_address(i),
+                bg='#E3F2FD', fg='#1976D2',
+                font=('Microsoft YaHei UI', 9),
+                relief='flat', cursor='hand2',
+                borderwidth=0, pady=5, padx=12
+            )
+            btn.pack(side='left', padx=3)
 
-        common_ips_layout.addStretch()
-        ping_layout.addLayout(common_ips_layout)
-        ping_layout.addLayout(button_layout)
+        # 操作按钮行
+        action_row = tk.Frame(ping_frame, bg='#F5F7FA')
+        action_row.pack(fill='x')
 
-        ping_group.setLayout(ping_layout)
-        layout.addWidget(ping_group)
+        self.ping_btn = tk.Button(
+            action_row, text="🚀 开始Ping测试",
+            command=self.start_ping,
+            bg='#4CAF50', fg='white',
+            font=('Microsoft YaHei UI', 10, 'bold'),
+            relief='flat', cursor='hand2',
+            borderwidth=0, pady=8, padx=20
+        )
+        self.ping_btn.pack(side='left', padx=(0, 10))
 
-        # 网络诊断工具
-        diag_group = QGroupBox("网络诊断工具")
-        diag_layout = QVBoxLayout()
+        self.stop_ping_btn = tk.Button(
+            action_row, text="⏹ 停止",
+            command=self.stop_ping,
+            state='disabled',
+            bg='#f44336', fg='white',
+            font=('Microsoft YaHei UI', 10),
+            relief='flat', cursor='hand2',
+            borderwidth=0, pady=8, padx=15
+        )
+        self.stop_ping_btn.pack(side='left')
 
-        # 网络信息按钮
-        network_buttons = QHBoxLayout()
-        self.network_info_btn = QPushButton("网络连接信息")
-        self.network_info_btn.clicked.connect(self.show_network_info)
-        network_buttons.addWidget(self.network_info_btn)
+        # 网络诊断工具区域
+        diag_frame = tk.LabelFrame(
+            main_container,
+            text=" 网络诊断工具 ",
+            bg='#F5F7FA',
+            font=('Microsoft YaHei UI', 11, 'bold'),
+            fg='#333333',
+            padx=15, pady=15
+        )
+        diag_frame.pack(fill='x', pady=(0, 10))
 
-        self.flush_dns_btn = QPushButton("刷新DNS缓存")
-        self.flush_dns_btn.clicked.connect(self.flush_dns)
-        network_buttons.addWidget(self.flush_dns_btn)
-        diag_layout.addLayout(network_buttons)
+        # 工具按钮网格
+        tools_grid = tk.Frame(diag_frame, bg='#F5F7FA')
+        tools_grid.pack(fill='x')
 
-        # IP管理按钮
-        ip_buttons = QHBoxLayout()
-        self.release_ip_btn = QPushButton("释放IP地址")
-        self.release_ip_btn.clicked.connect(self.release_ip)
-        ip_buttons.addWidget(self.release_ip_btn)
+        # 第一行工具按钮
+        row1 = tk.Frame(tools_grid, bg='#F5F7FA')
+        row1.pack(fill='x', pady=3)
 
-        self.renew_ip_btn = QPushButton("续约IP地址")
-        self.renew_ip_btn.clicked.connect(self.renew_ip)
-        ip_buttons.addWidget(self.renew_ip_btn)
-        diag_layout.addLayout(ip_buttons)
+        self.network_info_btn = tk.Button(
+            row1, text="📊 网络连接信息",
+            command=self.show_network_info,
+            bg='#FFFFFF', fg='#333333',
+            font=('Microsoft YaHei UI', 9),
+            relief='solid', borderwidth=1, cursor='hand2',
+            pady=6, padx=15
+        )
+        self.network_info_btn.pack(side='left', fill='x', expand=True, padx=3)
 
-        # 其他工具按钮
-        other_buttons = QHBoxLayout()
-        self.arp_cache_btn = QPushButton("查看ARP缓存")
-        self.arp_cache_btn.clicked.connect(self.show_arp_cache)
-        other_buttons.addWidget(self.arp_cache_btn)
+        self.flush_dns_btn = tk.Button(
+            row1, text="🔄 刷新DNS缓存",
+            command=self.flush_dns,
+            bg='#FFFFFF', fg='#333333',
+            font=('Microsoft YaHei UI', 9),
+            relief='solid', borderwidth=1, cursor='hand2',
+            pady=6, padx=15
+        )
+        self.flush_dns_btn.pack(side='left', fill='x', expand=True, padx=3)
 
-        self.route_table_btn = QPushButton("查看路由表")
-        self.route_table_btn.clicked.connect(self.show_route_table)
-        other_buttons.addWidget(self.route_table_btn)
-        diag_layout.addLayout(other_buttons)
+        self.arp_cache_btn = tk.Button(
+            row1, text="🔍 查看ARP缓存",
+            command=self.show_arp_cache,
+            bg='#FFFFFF', fg='#333333',
+            font=('Microsoft YaHei UI', 9),
+            relief='solid', borderwidth=1, cursor='hand2',
+            pady=6, padx=15
+        )
+        self.arp_cache_btn.pack(side='left', fill='x', expand=True, padx=3)
 
-        diag_group.setLayout(diag_layout)
-        layout.addWidget(diag_group)
+        # 第二行工具按钮
+        row2 = tk.Frame(tools_grid, bg='#F5F7FA')
+        row2.pack(fill='x', pady=3)
+
+        self.release_ip_btn = tk.Button(
+            row2, text="⬇️ 释放IP地址",
+            command=self.release_ip,
+            bg='#FFFFFF', fg='#333333',
+            font=('Microsoft YaHei UI', 9),
+            relief='solid', borderwidth=1, cursor='hand2',
+            pady=6, padx=15
+        )
+        self.release_ip_btn.pack(side='left', fill='x', expand=True, padx=3)
+
+        self.renew_ip_btn = tk.Button(
+            row2, text="⬆️ 续约IP地址",
+            command=self.renew_ip,
+            bg='#FFFFFF', fg='#333333',
+            font=('Microsoft YaHei UI', 9),
+            relief='solid', borderwidth=1, cursor='hand2',
+            pady=6, padx=15
+        )
+        self.renew_ip_btn.pack(side='left', fill='x', expand=True, padx=3)
+
+        self.route_table_btn = tk.Button(
+            row2, text="📋 查看路由表",
+            command=self.show_route_table,
+            bg='#FFFFFF', fg='#333333',
+            font=('Microsoft YaHei UI', 9),
+            relief='solid', borderwidth=1, cursor='hand2',
+            pady=6, padx=15
+        )
+        self.route_table_btn.pack(side='left', fill='x', expand=True, padx=3)
 
         # 输出区域
-        self.output_text = QTextEdit()
-        self.output_text.setReadOnly(True)
-        self.output_text.setFont(QFont("Consolas", 9))
-        self.output_text.setMaximumHeight(250)
-        layout.addWidget(self.output_text)
+        output_container = tk.Frame(main_container, bg='#F5F7FA')
+        output_container.pack(fill='both', expand=True, pady=(10, 0))
 
         # 输出控制按钮
-        output_controls = QHBoxLayout()
-        self.clear_output_btn = QPushButton("清空输出")
-        self.clear_output_btn.clicked.connect(self.clear_output)
-        output_controls.addWidget(self.clear_output_btn)
+        output_controls = tk.Frame(output_container, bg='#F5F7FA')
+        output_controls.pack(fill='x', pady=(0, 8))
 
-        self.copy_output_btn = QPushButton("复制内容")
-        self.copy_output_btn.clicked.connect(self.copy_output)
-        output_controls.addWidget(self.copy_output_btn)
+        self.clear_output_btn = tk.Button(
+            output_controls, text="🗑️ 清空输出",
+            command=self.clear_output,
+            bg='#FF9800', fg='white',
+            font=('Microsoft YaHei UI', 9),
+            relief='flat', cursor='hand2',
+            borderwidth=0, pady=5, padx=15
+        )
+        self.clear_output_btn.pack(side='left', padx=(0, 8))
 
-        output_controls.addStretch()
-        layout.addLayout(output_controls)
+        self.copy_output_btn = tk.Button(
+            output_controls, text="📄 复制内容",
+            command=self.copy_output,
+            bg='#607D8B', fg='white',
+            font=('Microsoft YaHei UI', 9),
+            relief='flat', cursor='hand2',
+            borderwidth=0, pady=5, padx=15
+        )
+        self.copy_output_btn.pack(side='left')
 
-        layout.addStretch()
-        self.setLayout(layout)
+        # 输出文本框
+        output_frame = tk.Frame(output_container, bg='white', relief='solid', borderwidth=1)
+        output_frame.pack(fill='both', expand=True)
+
+        self.output_text = tk.Text(
+            output_frame,
+            height=12,
+            font=('Consolas', 9),
+            wrap=tk.WORD,
+            bg='#282C34',
+            fg='#ABB2BF',
+            insertbackground='white',
+            relief='flat',
+            borderwidth=0
+        )
+        self.output_text.pack(side='left', fill='both', expand=True, padx=(5, 0), pady=5)
+
+        # 添加滚动条
+        output_scrollbar = tk.Scrollbar(output_frame, command=self.output_text.yview)
+        output_scrollbar.pack(side='right', fill='y', pady=5, padx=(0, 5))
+        self.output_text.config(yscrollcommand=output_scrollbar.set)
 
     def set_ip_address(self, ip: str):
         """设置IP地址到输入框"""
-        self.ip_edit.setText(ip)
+        self.ip_edit.delete(0, tk.END)
+        self.ip_edit.insert(0, ip)
 
     def start_ping(self):
         """开始Ping测试"""
-        ip = self.ip_edit.text().strip()
+        ip = self.ip_edit.get().strip()
         if not ip:
-            QMessageBox.warning(self, "警告", "请输入IP地址或域名")
+            messagebox.showwarning("警告", "请输入IP地址或域名")
             return
 
         # 禁用按钮，启用停止按钮
-        self.ping_btn.setEnabled(False)
-        self.stop_ping_btn.setEnabled(True)
+        self.ping_btn.config(state='disabled')
+        self.stop_ping_btn.config(state='normal')
 
         # 清空输出
-        self.output_text.clear()
+        self.output_text.delete(1.0, tk.END)
 
         # 获取Ping次数
-        count = int(self.ping_count_combo.currentText())
+        count = int(self.ping_count_combo.get())
 
         # 创建并启动Ping线程
         self.ping_thread = PingThread(ip, count)
-        self.ping_thread.ping_output.connect(self.append_ping_output)
-        self.ping_thread.ping_finished.connect(self.on_ping_finished)
+        self.ping_thread.set_output_callback(self.append_ping_output)
+        self.ping_thread.set_finished_callback(self.on_ping_finished)
         self.ping_thread.start()
 
     def stop_ping(self):
         """停止Ping测试"""
-        if self.ping_thread and self.ping_thread.isRunning():
+        if self.ping_thread and self.ping_thread.is_alive():
             self.ping_thread.stop()
-            self.ping_thread.wait()
             self.append_ping_output("Ping测试已停止")
 
-        self.ping_btn.setEnabled(True)
-        self.stop_ping_btn.setEnabled(False)
+        self.ping_btn.config(state='normal')
+        self.stop_ping_btn.config(state='disabled')
 
     def append_ping_output(self, text: str):
         """添加Ping输出到文本区域"""
-        self.output_text.append(text)
-        # 滚动到底部
-        scrollbar = self.output_text.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        self.output_text.insert(tk.END, text + "\n")
+        self.output_text.see(tk.END)
 
     def on_ping_finished(self, success: bool, summary: str):
         """Ping测试完成"""
@@ -186,8 +290,8 @@ class NetworkToolsTab(QWidget):
         self.append_ping_output(summary)
 
         # 恢复按钮状态
-        self.ping_btn.setEnabled(True)
-        self.stop_ping_btn.setEnabled(False)
+        self.ping_btn.config(state='normal')
+        self.stop_ping_btn.config(state='disabled')
 
     def show_network_info(self):
         """显示网络连接信息"""
@@ -198,10 +302,12 @@ class NetworkToolsTab(QWidget):
                 text=True,
                 encoding='gbk'
             )
-            self.output_text.setText("网络连接信息:\n" + "=" * 50 + "\n")
-            self.output_text.append(result.stdout)
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output("网络连接信息:\n" + "=" * 50 + "\n")
+            self.append_ping_output(result.stdout)
         except Exception as e:
-            self.output_text.setText(f"错误: {e}")
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output(f"错误: {e}")
 
     def release_ip(self):
         """释放IP地址"""
@@ -212,10 +318,12 @@ class NetworkToolsTab(QWidget):
                 text=True,
                 encoding='gbk'
             )
-            self.output_text.setText("IP地址释放结果:\n" + "=" * 50 + "\n")
-            self.output_text.append(result.stdout)
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output("IP地址释放结果:\n" + "=" * 50 + "\n")
+            self.append_ping_output(result.stdout)
         except Exception as e:
-            self.output_text.setText(f"错误: {e}")
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output(f"错误: {e}")
 
     def renew_ip(self):
         """续约IP地址"""
@@ -226,10 +334,12 @@ class NetworkToolsTab(QWidget):
                 text=True,
                 encoding='gbk'
             )
-            self.output_text.setText("IP地址续约结果:\n" + "=" * 50 + "\n")
-            self.output_text.append(result.stdout)
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output("IP地址续约结果:\n" + "=" * 50 + "\n")
+            self.append_ping_output(result.stdout)
         except Exception as e:
-            self.output_text.setText(f"错误: {e}")
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output(f"错误: {e}")
 
     def flush_dns(self):
         """刷新DNS缓存"""
@@ -240,10 +350,12 @@ class NetworkToolsTab(QWidget):
                 text=True,
                 encoding='gbk'
             )
-            self.output_text.setText("DNS缓存刷新结果:\n" + "=" * 50 + "\n")
-            self.output_text.append(result.stdout)
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output("DNS缓存刷新结果:\n" + "=" * 50 + "\n")
+            self.append_ping_output(result.stdout)
         except Exception as e:
-            self.output_text.setText(f"错误: {e}")
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output(f"错误: {e}")
 
     def show_arp_cache(self):
         """查看ARP缓存"""
@@ -254,10 +366,12 @@ class NetworkToolsTab(QWidget):
                 text=True,
                 encoding='gbk'
             )
-            self.output_text.setText("ARP缓存:\n" + "=" * 50 + "\n")
-            self.output_text.append(result.stdout)
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output("ARP缓存:\n" + "=" * 50 + "\n")
+            self.append_ping_output(result.stdout)
         except Exception as e:
-            self.output_text.setText(f"错误: {e}")
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output(f"错误: {e}")
 
     def show_route_table(self):
         """查看路由表"""
@@ -268,19 +382,21 @@ class NetworkToolsTab(QWidget):
                 text=True,
                 encoding='gbk'
             )
-            self.output_text.setText("路由表:\n" + "=" * 50 + "\n")
-            self.output_text.append(result.stdout)
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output("路由表:\n" + "=" * 50 + "\n")
+            self.append_ping_output(result.stdout)
         except Exception as e:
-            self.output_text.setText(f"错误: {e}")
+            self.output_text.delete(1.0, tk.END)
+            self.append_ping_output(f"错误: {e}")
 
     def clear_output(self):
         """清空输出区域"""
-        self.output_text.clear()
+        self.output_text.delete(1.0, tk.END)
 
     def copy_output(self):
         """复制输出内容到剪贴板"""
-        text = self.output_text.toPlainText()
-        if text:
-            clipboard = QApplication.clipboard()
-            clipboard.setText(text)
-            QMessageBox.information(self, "成功", "内容已复制到剪贴板")
+        text = self.output_text.get(1.0, tk.END)
+        if text.strip():
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            messagebox.showinfo("成功", "内容已复制到剪贴板")
