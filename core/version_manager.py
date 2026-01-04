@@ -104,18 +104,18 @@ class VersionManager:
                 # 获取更新日志（body 字段）
                 changelog = release_data.get('body', '暂无更新日志')
 
-                # 从 assets 中查找 WindowsToolbox.exe 的下载链接
                 download_url = ''
                 assets = release_data.get('assets', [])
                 for asset in assets:
                     asset_name = asset.get('name', '')
-                    if 'WindowsToolbox.exe' in asset_name or asset_name == 'WindowsToolbox.exe':
+                    # 匹配 z-tools_v1.0.0.exe 或其他 z-tools 开头的 exe 文件
+                    if asset_name.startswith('z-tools') and asset_name.endswith('.exe'):
                         download_url = asset.get('browser_download_url', '')
                         break
 
                 # 如果没有找到 exe 文件，使用备用下载地址
                 if not download_url and version:
-                    download_url = f"https://github.com/{self.GITHUB_OWNER}/{self.GITHUB_REPO}/releases/download/v{version}/WindowsToolbox.exe"
+                    download_url = f"https://github.com/{self.GITHUB_OWNER}/{self.GITHUB_REPO}/releases/download/v{version}/z-tools_v{version}.exe"
 
                 return {
                     'version': version,
