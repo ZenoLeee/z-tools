@@ -6,6 +6,7 @@ from ui.network_tab import NetworkToolsTab
 from ui.duplicate_file_tab import DuplicateFileTab
 from ui.large_file_tab import LargeFileTab
 from ui.empty_folder_tab import EmptyFolderTab
+from core.version_manager import VersionManager, UpdateDialog
 
 
 class WindowsToolbox(tk.Tk):
@@ -13,8 +14,11 @@ class WindowsToolbox(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.version_manager = VersionManager(self)
         self.init_ui()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        # 启动时检查更新（后台）
+        self._check_update_on_startup()
 
     def init_ui(self):
         self.title("Windows工具箱")
@@ -106,9 +110,73 @@ class WindowsToolbox(tk.Tk):
 
         self.notebook.pack(expand=True, fill='both', padx=5, pady=5)
 
+        # 创建菜单栏
+        self._create_menu_bar()
+
         # 创建状态栏
         self.status_bar = tk.Label(self, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def _create_menu_bar(self):
+        """创建菜单栏"""
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+
+        # 帮助菜单
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="帮助", menu=help_menu)
+        help_menu.add_command(label="检查更新", command=self._check_update_manually)
+        help_menu.add_separator()
+        help_menu.add_command(label="关于", command=self._show_about)
+
+    def _check_update_on_startup(self):
+        """启动时后台检查更新"""
+        import threading
+        def check_in_background():
+            import time
+            time.sleep(2)  # 延迟2秒，等待窗口完全加载
+            has_update, latest_version, changelog = self.version_manager.check_for_updates(show_message_if_no_update=False)
+            if has_update:
+                # 在主线程显示更新对话框
+                self.after(0, lambda: UpdateDialog(self, self.version_manager, has_update, latest_version, changelog))
+
+        thread = threading.Thread(target=check_in_background, daemon=True)
+        thread.start()
+
+    def _check_update_manually(self):
+        """手动检查更新"""
+        import threading
+        def check():
+            has_update, latest_version, changelog = self.version_manager.check_for_updates(show_message_if_no_update=True)
+            if has_update:
+                self.after(0, lambda: UpdateDialog(self, self.version_manager, has_update, latest_version, changelog))
+
+        # 显示检查中提示
+        self.status_bar.config(text="正在检查更新...")
+        thread = threading.Thread(target=check, daemon=True)
+        thread.start()
+
+    def _show_about(self):
+        """显示关于对话框"""
+        about_text = f"""
+Windows工具箱
+版本：{self.version_manager.CURRENT_VERSION}
+
+一款功能强大的Windows系统工具箱
+
+功能特性：
+• 无效快捷方式清理
+• 重复文件查找与清理
+• 大文件查找与管理
+• 空文件夹清理
+• 系统工具
+• 网络工具
+
+© 2025 WindowsToolbox
+        """
+
+        from tkinter import messagebox
+        messagebox.showinfo("关于", about_text.strip())
 
     def on_closing(self):
         """关闭窗口事件"""
