@@ -4,13 +4,19 @@ from ui.cleanup_tab import SystemCleanupTab
 from ui.system_tab import SystemToolsTab
 from ui.network_tab import NetworkToolsTab
 from core.version_manager import VersionManager, UpdateDialog
+from utils.platform import get_platform_name, get_supported_features
 
 
 class WindowsToolbox(tk.Tk):
-    """Windows工具箱主窗口"""
+    """
+    跨平台系统工具箱主窗口
+    类名保持 WindowsToolbox 以向后兼容
+    """
 
     def __init__(self):
         super().__init__()
+        self.platform_name = get_platform_name()
+        self.supported_features = get_supported_features()
         self.version_manager = VersionManager(self)
         self.init_ui()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -18,7 +24,9 @@ class WindowsToolbox(tk.Tk):
         self._check_update_on_startup()
 
     def init_ui(self):
-        self.title("Windows工具箱")
+        # 根据平台设置窗口标题
+        app_title = "Windows工具箱" if self.platform_name == "Windows" else f"{self.platform_name}工具箱"
+        self.title(app_title)
         self.geometry("1200x800")
         self.minsize(900, 600)
 
@@ -143,19 +151,32 @@ class WindowsToolbox(tk.Tk):
 
     def _show_about(self):
         """显示关于对话框"""
-        about_text = f"""
-Windows工具箱
-版本：{self.version_manager.CURRENT_VERSION}
+        # 根据平台显示不同的功能列表
+        features = [
+            "• 重复文件查找与清理",
+            "• 大文件查找与管理",
+            "• 空文件夹清理",
+            "• 网络工具"
+        ]
 
-一款功能强大的Windows系统工具箱
+        if self.supported_features.get('shortcut_cleanup'):
+            features.append("• 无效快捷方式清理")
+
+        if self.supported_features.get('registry_cleanup'):
+            features.append("• 注册表清理")
+            features.append("• 启动项管理")
+
+        features_text = "\n".join(features)
+
+        about_text = f"""
+{self.platform_name}工具箱
+版本：{self.version_manager.CURRENT_VERSION}
+平台：{self.platform_name}
+
+一款功能强大的跨平台系统工具箱
 
 功能特性：
-• 无效快捷方式清理
-• 重复文件查找与清理
-• 大文件查找与管理
-• 空文件夹清理
-• 系统工具
-• 网络工具
+{features_text}
 
 © 2025 WindowsToolbox
         """
