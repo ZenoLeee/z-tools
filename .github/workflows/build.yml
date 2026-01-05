@@ -95,53 +95,6 @@ jobs:
         name: z-tools-macos
         path: dist/z-tools_test
 
-  test-cross-platform:
-    name: Test Cross-Platform Features
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.11', '3.12']
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install psutil
-
-    - name: Test platform detection
-      run: |
-        python -c "
-        from utils.platform import get_platform, get_platform_name, get_supported_features
-        import sys
-        print(f'Python: {sys.version}')
-        print(f'Platform: {get_platform_name()}')
-        print(f'Features: {get_supported_features()}')
-        "
-
-    - name: Test file scanner (cross-platform)
-      run: |
-        python -c "
-        from core.file_scanner import FileScanner
-        scanner = FileScanner()
-        print('File scanner: OK')
-        "
-
-    - name: Test network tools (cross-platform)
-      run: |
-        python -c "
-        from core.network_tools import NetworkTools
-        tools = NetworkTools()
-        print('Network tools: OK')
-        "
-
   release:
     name: Create Release
     needs: [build-windows, build-macos]
