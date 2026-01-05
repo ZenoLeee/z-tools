@@ -58,7 +58,7 @@ jobs:
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
-        name: z-tools-windows-${{ env.VERSION }}
+        name: z-tools-windows
         path: release/
         retention-days: 30
 
@@ -146,7 +146,7 @@ jobs:
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
       with:
-        name: z-tools-macos-${{ env.VERSION }}
+        name: z-tools-macos
         path: release/
         retention-days: 30
 
@@ -163,13 +163,13 @@ jobs:
     - name: Download Windows artifact
       uses: actions/download-artifact@v4
       with:
-        name: z-tools-windows-${{ github.ref_name }}
+        name: z-tools-windows
         path: windows-release
 
     - name: Download macOS artifact
       uses: actions/download-artifact@v4
       with:
-        name: z-tools-macos-${{ github.ref_name }}
+        name: z-tools-macos
         path: macos-release
 
     - name: Create release archives
