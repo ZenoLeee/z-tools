@@ -4,7 +4,6 @@
 """
 import sys
 import os
-import platform
 
 
 class Platform:
@@ -22,13 +21,15 @@ def get_platform() -> str:
     Returns:
         平台标识符
     """
-    system = platform.system().lower()
+    # 使用 sys.platform 避免导入标准库的 platform 模块
+    # sys.platform: 'win32' (Windows), 'darwin' (macOS), 'linux' (Linux)
+    platform_str = sys.platform.lower()
 
-    if system == "windows":
+    if platform_str == "win32":
         return Platform.WINDOWS
-    elif system == "darwin":
+    elif platform_str == "darwin":
         return Platform.MACOS
-    elif system == "linux":
+    elif platform_str.startswith("linux"):
         return Platform.LINUX
     else:
         return Platform.UNKNOWN
