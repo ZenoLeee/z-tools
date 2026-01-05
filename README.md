@@ -2,7 +2,7 @@
 
 一款功能强大的跨平台系统工具箱，支持 Windows 和 macOS，帮助你清理系统垃圾、优化系统性能和管理文件。
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 
@@ -227,6 +227,38 @@ z-tools/
 - 🔍 **快速测试** - 网络工具内置常用测试地址
 
 ## 📝 更新日志
+
+### v1.1.0 (2025-01-05)
+
+#### 🚀 跨平台支持
+
+**新增 macOS 平台支持**
+- ✅ 完整的 macOS 平台适配
+- ✅ 支持 macOS 10.14 (Mojave) 及更高版本
+- ✅ 跨平台架构设计，自动识别运行平台
+
+**平台特定功能优化**
+- ✅ Windows：快捷方式（.lnk）扫描
+- ✅ macOS：快捷别名（.alias）和 Web 定位（.webloc）扫描
+- ✅ macOS：Dock 项目管理
+- ✅ Windows：注册表清理（独占功能）
+- ✅ macOS：LaunchAgents/LaunchDaemons 启动项管理
+
+**跨平台通用功能**
+- ✅ 重复文件清理（所有平台）
+- ✅ 大文件管理（所有平台）
+- ✅ 空文件夹清理（所有平台）
+- ✅ 网络工具（所有平台）
+- ✅ 系统信息查看（所有平台）
+
+**开发工具优化**
+- ✅ GitHub Actions 自动构建 Windows 和 macOS 版本
+- ✅ 平台适配器模式，便于扩展 Linux 支持
+
+**技术改进**
+- ✅ 修复循环导入问题
+- ✅ 优化平台检测机制（使用 sys.platform）
+- ✅ 代码结构优化，分离平台特定代码
 
 ### v1.0.0 (2025-01-04)
 
