@@ -18,7 +18,7 @@ class VersionManager:
     """版本管理器"""
 
     # 当前版本号
-    CURRENT_VERSION = "1.1.0"
+    CURRENT_VERSION = "1.1.1"
 
     # GitHub Releases API 地址
     VERSION_INFO_URL = "https://api.github.com/repos/ZenoLeee/z-tools/releases/latest"
