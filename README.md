@@ -1,11 +1,10 @@
-# Windows工具箱 (z-tools)
+# 跨平台系统工具箱 (z-tools)
 
-一款功能强大的 Windows 系统工具箱，帮助你清理系统垃圾、优化系统性能和管理文件。
+一款功能强大的跨平台系统工具箱，支持 Windows 和 macOS，帮助你清理系统垃圾、优化系统性能和管理文件。
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## ✨ 功能特性
 
@@ -34,7 +33,7 @@
   - 支持包含/不包含空子目录选项
   - 全选/反选批量操作
 
-### 📋 注册表清理
+### 📋 注册表清理（仅 Windows）
 
 安全高效地清理注册表，提升系统性能：
 
@@ -44,6 +43,8 @@
 - **自动备份** - 清理前自动创建 .reg 备份文件
 - **一键恢复** - 支持从备份恢复注册表
 - **全选/反选** - 方便批量操作
+
+> **注意**：macOS 没有注册表，此功能仅在 Windows 平台可用。macOS 用户可以使用启动项管理功能。
 
 ### 🌐 网络工具
 
@@ -78,17 +79,34 @@
 
 ## 系统要求
 
+### Windows
 - Windows 10/11
 - 1GB RAM 或更高
 - 50MB 可用磁盘空间
+
+### macOS
+- macOS 10.14 (Mojave) 或更高
+- 1GB RAM 或更高
+- 50MB 可用磁盘空间
+
+### 通用要求
+- Python 3.8 或更高（仅从源码运行时需要）
+- 预编译版本无需安装 Python
 
 ## 安装方法
 
 ### 方式 1：下载预编译版本（推荐）
 
+#### Windows
 1. 访问 [Releases 页面](https://github.com/ZenoLeee/z-tools/releases)
-2. 下载最新的 `z-tools_v1.0.0.exe`（版本号会变化）
+2. 下载最新的 `z-tools_v{version}.exe`
 3. 直接运行，无需安装
+
+#### macOS
+1. 访问 [Releases 页面](https://github.com/ZenoLeee/z-tools/releases)
+2. 下载最新的 `z-tools_v{version}`
+3. 添加执行权限：`chmod +x z-tools_v{version}`
+4. 运行：`./z-tools_v{version}`
 
 ### 方式 2：从源码运行
 
@@ -106,6 +124,7 @@ python main.py
 
 ### 方式 3：自行打包
 
+#### Windows
 ```bash
 # 安装依赖
 pip install -r requirements.txt
@@ -113,7 +132,21 @@ pip install -r requirements.txt
 # 运行打包脚本
 build.bat
 
-# 打包后的文件在 dist/z-tools_v1.0.0.exe（版本号会变化）
+# 打包后的文件在 dist/
+```
+
+#### macOS
+```bash
+# 安装依赖
+pip3 install -r requirements.txt
+
+# 添加执行权限
+chmod +x build.sh
+
+# 运行打包脚本
+./build.sh
+
+# 打包后的文件在 dist/
 ```
 
 ## 📖 使用说明
@@ -264,6 +297,23 @@ z-tools/
 ### Q: 支持哪些Windows版本？
 **A**: 支持 Windows 10/11，建议使用 64 位系统以获得最佳性能。
 
+### Q: 支持哪些macOS版本？
+**A**: 支持 macOS 10.14 (Mojave) 及更高版本。
+
+### Q: Windows和macOS功能一样吗？
+**A**: 大部分功能相同，但有少量差异：
+- **注册表清理**：仅 Windows 可用（macOS 没有注册表）
+- **快捷方式清理**：两个平台都支持，但处理方式不同
+- **启动项管理**：两个平台都支持，macOS 使用 LaunchAgents/LaunchDaemons
+- **文件清理、网络工具**：完全相同
+
+### Q: 如何在没有Mac的情况下测试Mac版本？
+**A**: 有以下几种方式：
+1. 使用 GitHub Actions 自动构建（已配置，推送到 GitHub 会自动构建）
+2. 使用虚拟机安装 macOS
+3. 借用朋友的 Mac 电脑测试
+4. 使用 MacStadium 等 Mac 在线服务
+
 ## 贡献
 
 欢迎贡献代码、报告 Bug 或提出新功能建议！
@@ -289,10 +339,6 @@ z-tools/
 - 🐛 提交 [Issue](https://github.com/ZenoLeee/z-tools/issues)
 - 💡 功能建议：[Issues](https://github.com/ZenoLeee/z-tools/issues)
 - 📥 访问 [项目主页](https://github.com/ZenoLeee/z-tools)
-
-## 📄 开源协议
-
-本项目采用 MIT 协议开源 - 查看 [LICENSE](LICENSE) 文件了解详情
 
 ---
 
