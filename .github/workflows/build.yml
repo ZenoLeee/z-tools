@@ -2,10 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main, master, develop ]
-  pull_request:
-    branches: [ main, master, develop ]
-  workflow_dispatch:
+    tags:
+      - 'v*'  # 推送 v* 开头的 tag 时触发
+  workflow_dispatch:  # 同时也支持手动触发
 
 jobs:
   build-windows:
@@ -34,15 +33,23 @@ jobs:
         python -c "from core.shortcut_scanner import *; print('Shortcut scanner: OK')"
         python -c "from core.platform import get_shortcut_scanner; print('Platform adapter: OK')"
 
+    - name: Get version
+      id: version
+      run: |
+        $VERSION = Select-String -Path "core\version_manager.py" -Pattern "CURRENT_VERSION = " | Select-Object -First 1 | ForEach-Object { $_.ToString() -replace '.*"(.*)".*', '$1' }
+        echo "VERSION=$VERSION" | Out-File -Encoding ASCII $env:GITHUB_ENV
+        echo "VERSION=$VERSION"
+      shell: pwsh
+
     - name: Build with PyInstaller
       run: |
-        python -m PyInstaller --onefile --windowed --name z-tools_test main.py
+        python -m PyInstaller --onefile --windowed --name z-tools_v${{ env.VERSION }} main.py
 
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: z-tools-windows
-        path: dist/z-tools_test.exe
+        path: dist/z-tools_v${{ env.VERSION }}.exe
 
   build-macos:
     name: Build on macOS
@@ -85,44 +92,19 @@ jobs:
         print('Mac platform tests: PASSED')
         "
 
+    - name: Get version
+      id: version
+      run: |
+        VERSION=$(grep "CURRENT_VERSION = " core/version_manager.py | head -1 | sed 's/.*"\(.*\)".*/\1/')
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "VERSION=$VERSION"
+
     - name: Build with PyInstaller
       run: |
-        python3 -m PyInstaller --onefile --windowed --name z-tools_test main.py
+        python3 -m PyInstaller --onefile --windowed --name z-tools_v${{ env.VERSION }} main.py
 
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
       with:
         name: z-tools-macos
-        path: dist/z-tools_test
-
-  release:
-    name: Create Release
-    needs: [build-windows, build-macos]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Download Windows artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: z-tools-windows
-        path: artifacts
-
-    - name: Download macOS artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: z-tools-macos
-        path: artifacts
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          artifacts/z-tools_test.exe
-          artifacts/z-tools_test
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        path: dist/z-tools_v${{ env.VERSION }}
