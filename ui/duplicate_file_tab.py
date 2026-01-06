@@ -534,9 +534,6 @@ class DuplicateFileTab(tk.Frame):
 
     def on_scan_finished(self, file_objects, total_files, duplicate_groups, duplicate_files):
         """扫描完成"""
-        # 设置扫描状态
-        self.is_scanning = False
-
         # 保存扫描结果
         self.file_objects = file_objects
 
@@ -553,11 +550,31 @@ class DuplicateFileTab(tk.Frame):
             self.table.delete(item)
 
         # 将所有文件添加到表格中
+        # 注意：此时不要设置 is_scanning = False，否则 add_duplicate_file 会直接返回
         for file_info in file_objects:
-            self.add_duplicate_file(
-                file_info,
-                file_info.duplicate_group if file_info.is_duplicate else 0
-            )
+            # 临时绕过 is_scanning 检查，直接插入数据
+            if file_info.is_duplicate and file_info.duplicate_group > 0:
+                # 添加到表格
+                size_mb = file_info.size / (1024 * 1024)
+                md5_short = file_info.md5_hash[:8] + "..." if len(file_info.md5_hash) > 8 else file_info.md5_hash
+
+                item_id = self.table.insert('', 'end', values=(
+                    "✓" if file_info.keep else "✗",
+                    file_info.filename,
+                    file_info.directory,
+                    f"{size_mb:.2f} MB",
+                    file_info.modified_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    md5_short,
+                    str(file_info.duplicate_group)
+                ))
+
+                # 如果不是保留文件，设置红色背景
+                if not file_info.keep:
+                    self.table.item(item_id, tags='duplicate')
+                    self.table.tag_configure('duplicate', background='#ffc8c8')
+
+        # 现在可以安全地设置扫描状态为 False
+        self.is_scanning = False
 
         # 更新进度条
         self.progress_bar['value'] = 100

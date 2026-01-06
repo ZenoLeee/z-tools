@@ -128,10 +128,10 @@ class WindowsToolbox(tk.Tk):
         def check_in_background():
             import time
             time.sleep(2)  # 延迟2秒，等待窗口完全加载
-            has_update, latest_version, changelog = self.version_manager.check_for_updates(show_message_if_no_update=False)
+            has_update, latest_version, changelog, force_update = self.version_manager.check_for_updates(show_message_if_no_update=False)
             if has_update:
                 # 在主线程显示更新对话框
-                self.after(0, lambda: UpdateDialog(self, self.version_manager, has_update, latest_version, changelog))
+                self.after(0, lambda: UpdateDialog(self, self.version_manager, has_update, latest_version, changelog, force_update))
 
         thread = threading.Thread(target=check_in_background, daemon=True)
         thread.start()
@@ -140,9 +140,9 @@ class WindowsToolbox(tk.Tk):
         """手动检查更新"""
         import threading
         def check():
-            has_update, latest_version, changelog = self.version_manager.check_for_updates(show_message_if_no_update=True)
+            has_update, latest_version, changelog, force_update = self.version_manager.check_for_updates(show_message_if_no_update=True)
             if has_update:
-                self.after(0, lambda: UpdateDialog(self, self.version_manager, has_update, latest_version, changelog))
+                self.after(0, lambda: UpdateDialog(self, self.version_manager, has_update, latest_version, changelog, force_update))
 
         # 显示检查中提示
         self.status_bar.config(text="正在检查更新...")
