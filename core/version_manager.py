@@ -10,7 +10,6 @@ import urllib.error
 import tkinter as tk
 from tkinter import messagebox, ttk
 from threading import Thread
-import tempfile
 import subprocess
 
 
@@ -18,7 +17,7 @@ class VersionManager:
     """版本管理器"""
 
     # 当前版本号
-    CURRENT_VERSION = "1.1.1"
+    CURRENT_VERSION = "1.1.2"
 
     # GitHub Releases API 地址
     VERSION_INFO_URL = "https://api.github.com/repos/ZenoLeee/z-tools/releases/latest"
@@ -182,12 +181,20 @@ class VersionManager:
             return False
 
         try:
-            # 下载文件到临时目录
-            temp_dir = tempfile.gettempdir()
-            temp_file = os.path.join(temp_dir, "WindowsToolbox_new.exe")
+            # 下载文件到程序所在目录
+            if getattr(sys, 'frozen', False):
+                # 打包后的exe，下载到exe所在目录
+                app_dir = os.path.dirname(sys.executable)
+            else:
+                # 开发环境，下载到当前目录
+                app_dir = os.getcwd()
+
+            # 使用版本号命名新文件
+            new_filename = f"z-tools_v{self.latest_version}.exe"
+            temp_file = os.path.join(app_dir, new_filename)
 
             if progress_callback:
-                progress_callback(0, "准备下载...")
+                progress_callback(0, "正在连接服务器...")
 
             # 下载文件
             def download_thread():
@@ -215,7 +222,7 @@ class VersionManager:
                                     progress_callback(percent, f"下载中... {percent}%")
 
                     if progress_callback:
-                        progress_callback(100, "下载完成，准备更新...")
+                        progress_callback(100, "下载完成！")
 
                     # 获取当前程序路径
                     if getattr(sys, 'frozen', False):
@@ -224,23 +231,30 @@ class VersionManager:
                     else:
                         # 开发环境，不支持自动更新
                         if self.parent_window:
-                            messagebox.showinfo("提示", "开发环境不支持自动更新，请手动更新")
+                            messagebox.showinfo("提示", f"新版本已下载到：\n{temp_file}\n\n请手动运行新版本")
                         if progress_callback:
-                            progress_callback(0, "开发环境不支持自动更新")
+                            progress_callback(100, "下载完成")
                         return
 
-                    # 创建更新脚本
-                    update_script = self._create_update_script(current_exe, temp_file)
-
                     if progress_callback:
-                        progress_callback(100, "准备重启程序...")
+                        progress_callback(100, "正在启动新版本...")
 
-                    # 执行更新脚本并退出当前程序
+                    # 通知用户下载完成
                     if self.parent_window:
-                        self.parent_window.destroy()
+                        result = messagebox.askyesno(
+                            "下载完成",
+                            f"新版本已下载到：\n{temp_file}\n\n是否立即启动新版本？"
+                        )
 
-                    # 启动更新脚本
-                    subprocess.Popen(update_script, shell=True)
+                        if result:
+                            # 启动新版本
+                            subprocess.Popen(temp_file, shell=True)
+                            # 关闭当前程序
+                            self.parent_window.destroy()
+                        else:
+                            # 用户选择稍后手动启动
+                            if progress_callback:
+                                progress_callback(100, "您可以稍后手动运行新版本")
 
                 except Exception as e:
                     if progress_callback:
@@ -258,32 +272,6 @@ class VersionManager:
             if self.parent_window:
                 messagebox.showerror("更新失败", f"更新失败：{str(e)}")
             return False
-
-    def _create_update_script(self, current_exe, new_exe):
-        """
-        创建更新脚本
-
-        Args:
-            current_exe: 当前程序路径
-            new_exe: 新程序路径
-
-        Returns:
-            str: 更新脚本命令
-        """
-        script = f"""
-@echo off
-timeout /t 2 /nobreak >nul
-del /F /Q "{current_exe}"
-move /Y "{new_exe}" "{current_exe}"
-start "" "{current_exe}"
-del /F /Q "%~f0"
-"""
-        script_path = os.path.join(tempfile.gettempdir(), "update_toolbox.bat")
-
-        with open(script_path, 'w', encoding='gbk') as f:
-            f.write(script)
-
-        return script_path
 
 
 class UpdateDialog:
