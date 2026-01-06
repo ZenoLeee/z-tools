@@ -239,22 +239,16 @@ class VersionManager:
                     if progress_callback:
                         progress_callback(100, "正在启动新版本...")
 
-                    # 通知用户下载完成
+                    # 自动启动新版本并关闭当前程序
                     if self.parent_window:
-                        result = messagebox.askyesno(
-                            "下载完成",
-                            f"新版本已下载到：\n{temp_file}\n\n是否立即启动新版本？"
+                        messagebox.showinfo(
+                            "更新完成",
+                            f"新版本已下载到：\n{temp_file}\n\n正在启动新版本..."
                         )
-
-                        if result:
-                            # 启动新版本
-                            subprocess.Popen(temp_file, shell=True)
-                            # 关闭当前程序
-                            self.parent_window.destroy()
-                        else:
-                            # 用户选择稍后手动启动
-                            if progress_callback:
-                                progress_callback(100, "您可以稍后手动运行新版本")
+                        # 启动新版本
+                        subprocess.Popen(temp_file, shell=True)
+                        # 关闭当前程序
+                        self.parent_window.destroy()
 
                 except Exception as e:
                     if progress_callback:
