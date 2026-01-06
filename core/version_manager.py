@@ -170,24 +170,38 @@ class VersionManager:
 
             # 先尝试从 HTML 注释中提取配置
             import re
-            html_comment_pattern = r'<!--\s*(\[config\].*?\[/config\])\s*-->'
+            html_comment_pattern = r'<!--\s*\[config\].*?\[/config\]\s*-->'
             html_comment_match = re.search(html_comment_pattern, changelog, re.DOTALL)
 
             if html_comment_match:
-                # 从 HTML 注释中提取配置
-                config_section = html_comment_match.group(1)
-                config_start = html_comment_match.start()
-                config_end = html_comment_match.end()
+                # 从 HTML 注释中提取配置内容（不包括 <!-- 和 -->）
+                comment_content = html_comment_match.group(0)
+                # 提取 [config]...[/config] 部分
+                config_match = re.search(r'\[config\](.*?)\[/config\]', comment_content, re.DOTALL)
+                if config_match:
+                    config_section = config_match.group(1)
+
+                # 从显示的 changelog 中完全移除 HTML 注释
+                changelog = changelog[:html_comment_match.start()] + changelog[html_comment_match.end():]
+                # 清理多余的空行
+                changelog = re.sub(r'\n\s*\n', '\n\n', changelog).strip()
             else:
                 # 直接在 changelog 中查找 [config] 标记
                 config_start = changelog.find('[config]')
                 if config_start != -1:
                     config_end = changelog.find('[/config]', config_start)
-                    if config_end == -1:
+                    if config_end != -1:
+                        config_end += len('[/config]')  # 包含结束标记
+                        # 提取配置内容
+                        config_section = changelog[config_start + 8:config_end - 10].strip()
+                        # 从显示的 changelog 中移除配置部分
+                        changelog = changelog[:config_start].strip() + changelog[config_end:].strip()
+                        # 清理多余的空行
+                        changelog = re.sub(r'\n\s*\n', '\n\n', changelog).strip()
+                    else:
                         # 如果没有结束标记，取到文本末尾
                         config_section = changelog[config_start + 8:].strip()
-                    else:
-                        config_section = changelog[config_start + 8:config_end].strip()
+                        changelog = changelog[:config_start].strip()
 
             # 如果找到配置，解析配置项
             if config_section:
@@ -198,14 +212,6 @@ class VersionManager:
                     elif line.startswith('force-update:'):
                         value = line.split(':', 1)[1].strip().lower()
                         force_update = value in ['true', 'yes', '1']
-
-                # 从显示的 changelog 中移除配置部分
-                if config_end != -1:
-                    changelog = changelog[:config_start].strip() + changelog[config_end:].strip()
-                    # 清理多余的空行
-                    changelog = re.sub(r'\n\s*\n', '\n\n', changelog).strip()
-                elif config_start != -1:
-                    changelog = changelog[:config_start].strip()
 
             download_url = ''
             assets = release_data.get('assets', [])
