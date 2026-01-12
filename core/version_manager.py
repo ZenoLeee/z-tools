@@ -32,10 +32,9 @@ class VersionManager:
 
     # GitHub 加速镜像列表（按优先级排序）
     GITHUB_MIRRORS = [
-        "https://ghfast.top/",  # ghproxy
-        "https://gh-proxy.org/",  # gh-proxy 主节点
-        "https://hk.gh-proxy.org/",  # 香港节点
         "https://cdn.gh-proxy.org/",  # CDN 节点
+        "https://hub.gitfast.pro/",  # ghproxy
+        "https://gh-proxy.org/",  # gh-proxy 主节点
         "https://edgeone.gh-proxy.org/",  # EdgeOne 节点
         "",  # 官方地址
     ]

@@ -119,6 +119,24 @@ class SystemToolsTab(tk.Frame):
         )
         self.event_viewer_btn.pack(side='left', padx=5)
 
+        # 第五行
+        row5 = tk.Frame(grid_container, bg='#F5F5F5')
+        row5.pack(fill='x', pady=5)
+
+        self.startup_optimizer_btn = tk.Button(
+            row5, text="🚀 启动项优化",
+            command=self.open_startup_optimizer,
+            **button_style
+        )
+        self.startup_optimizer_btn.pack(side='left', padx=5)
+
+        self.windows_update_btn = tk.Button(
+            row5, text="🔄 Windows 更新",
+            command=self.open_windows_update,
+            **button_style
+        )
+        self.windows_update_btn.pack(side='left', padx=5)
+
     def run_disk_clean(self):
         subprocess.Popen('cleanmgr', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
 
@@ -142,3 +160,12 @@ class SystemToolsTab(tk.Frame):
 
     def open_event_viewer(self):
         subprocess.Popen('eventvwr.msc', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+
+    def open_startup_optimizer(self):
+        """打开启动项优化窗口"""
+        from ui.startup_optimizer_window import StartupOptimizerWindow
+        StartupOptimizerWindow(self)
+
+    def open_windows_update(self):
+        """打开Windows更新"""
+        subprocess.Popen('wuapp', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)

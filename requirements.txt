@@ -1,8 +1,12 @@
 # 核心依赖（所有平台）
 psutil==7.2.1
+pystray>=0.19.5
 
 # Windows 平台专用依赖
 pywin32==305; sys_platform == "win32"
 
 # 打包工具
 pyinstaller>=6.0.0
+
+# 开发依赖（仅开发环境需要，用于生成图标）
+Pillow>=10.0.0

@@ -53,8 +53,8 @@ class PlatformAdapter:
         platform_type = get_platform()
 
         if platform_type == Platform.WINDOWS:
-            # Windows 启动项管理（可以从现有代码提取）
-            return None
+            from core.platform.windows.startup_manager import WindowsStartupManager
+            return WindowsStartupManager
         elif platform_type == Platform.MACOS:
             from core.platform.macos.startup_manager import MacStartupManager
             return MacStartupManager

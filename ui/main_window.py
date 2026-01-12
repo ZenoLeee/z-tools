@@ -3,6 +3,7 @@ from tkinter import ttk
 from ui.cleanup_tab import SystemCleanupTab
 from ui.system_tab import SystemToolsTab
 from ui.network_tab import NetworkToolsTab
+from ui.system_tray import SystemTrayManager
 from core.version_manager import VersionManager, UpdateDialog
 from utils.platform import get_platform_name, get_supported_features
 
@@ -15,15 +16,34 @@ class WindowsToolbox(tk.Tk):
 
     def __init__(self):
         super().__init__()
+
+        # 先隐藏窗口，避免显示初始化过程
+        self.withdraw()
+
         self.platform_name = get_platform_name()
         self.supported_features = get_supported_features()
         self.version_manager = VersionManager(self)
+
+        # 初始化系统托盘（先设置为None）
+        self.tray_manager = None
+
         self.init_ui()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        # 绑定窗口最小化事件
+        self.bind('<Unmap>', self._on_window_minimize)
+
         # 启动时检查更新（后台）
         self._check_update_on_startup()
 
+        # 现在显示窗口
+        self.deiconify()
+        self.update()
+
     def init_ui(self):
+        # 设置窗口图标
+        self._set_window_icon()
+
         # 根据平台设置窗口标题
         app_title = "Windows工具箱" if self.platform_name == "Windows" else f"{self.platform_name}工具箱"
         self.title(app_title)
@@ -149,6 +169,101 @@ class WindowsToolbox(tk.Tk):
         thread = threading.Thread(target=check, daemon=True)
         thread.start()
 
+    def _set_window_icon(self):
+        """设置窗口图标"""
+        import os
+        import sys
+
+        # 获取资源目录路径
+        if getattr(sys, 'frozen', False):
+            # 打包后的exe，资源在exe所在目录
+            base_path = os.path.dirname(sys.executable)
+        else:
+            # 开发环境
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        icon_path = os.path.join(base_path, 'resources', 'icon.ico')
+
+        if os.path.exists(icon_path):
+            try:
+                self.iconbitmap(icon_path)
+            except Exception as e:
+                print(f"设置窗口图标失败: {e}")
+
+    def _init_system_tray(self):
+        """初始化系统托盘"""
+        try:
+            self.tray_manager = SystemTrayManager(
+                window=self,
+                show_window_callback=self._show_window_from_tray,
+                quit_callback=self._quit_from_tray
+            )
+            self.tray_manager.create_tray_icon()
+
+            # 在后台线程中运行托盘图标
+            import threading
+            self._tray_thread = threading.Thread(
+                target=self.tray_manager.icon.run,
+                daemon=True
+            )
+            self._tray_thread.start()
+        except Exception as e:
+            print(f"系统托盘初始化失败: {e}")
+            self.tray_manager = None
+
+    def _show_window_from_tray(self):
+        """从托盘显示窗口"""
+        # 停止托盘图标
+        if self.tray_manager:
+            self.tray_manager.stop()
+            self.tray_manager = None
+
+        # 显示窗口
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def _quit_from_tray(self):
+        """从托盘退出程序"""
+        self._cleanup_and_quit()
+
+    def _on_window_minimize(self, event):
+        """
+        窗口最小化事件处理
+        当窗口最小化时，自动隐藏到托盘
+        """
+        # 检查窗口是否被最小化
+        if self.state() == 'iconic':
+            # 延迟隐藏，确保最小化动画完成
+            self.after(100, self._hide_to_tray)
+
+    def _hide_to_tray(self):
+        """隐藏窗口到托盘"""
+        # 每次最小化时都创建托盘图标
+        if self.tray_manager is None:
+            self._init_system_tray()
+
+        if self.tray_manager:
+            self.withdraw()  # 隐藏窗口
+
+    def _cleanup_and_quit(self):
+        """清理资源并退出"""
+        # 停止清理标签页中的所有线程
+        self.cleanup_tab.on_closing()
+
+        # 停止Ping线程
+        if hasattr(self.network_tools_tab, 'ping_thread') and self.network_tools_tab.ping_thread:
+            if self.network_tools_tab.ping_thread.is_alive():
+                self.network_tools_tab.ping_thread.stop()
+                self.network_tools_tab.ping_thread.join(timeout=1)
+
+        # 停止托盘图标
+        if self.tray_manager:
+            self.tray_manager.stop()
+
+        # 销毁窗口
+        self.destroy()
+
     def _show_about(self):
         """显示关于对话框"""
         # 根据平台显示不同的功能列表
@@ -185,14 +300,5 @@ class WindowsToolbox(tk.Tk):
         messagebox.showinfo("关于", about_text.strip())
 
     def on_closing(self):
-        """关闭窗口事件"""
-        # 停止清理标签页中的所有线程
-        self.cleanup_tab.on_closing()
-
-        # 停止Ping线程
-        if hasattr(self.network_tools_tab, 'ping_thread') and self.network_tools_tab.ping_thread:
-            if self.network_tools_tab.ping_thread.is_alive():
-                self.network_tools_tab.ping_thread.stop()
-                self.network_tools_tab.ping_thread.join(timeout=1)
-
-        self.destroy()
+        """关闭窗口事件 - 直接退出程序"""
+        self._cleanup_and_quit()
