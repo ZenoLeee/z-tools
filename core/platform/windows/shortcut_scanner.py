@@ -279,16 +279,8 @@ class WindowsShortcutScanner:
 
             except Exception as e:
                 print(f"解析快捷方式失败 {lnk_path}: {e}")
-                shortcut = ShortcutInfo(
-                    name=os.path.basename(lnk_path),
-                    path=lnk_path,
-                    target_path="",
-                    is_valid=False,
-                    error_message=f"解析失败: {str(e)[:100]}",
-                    shortcut_type=shortcut_type,
-                    display_name=display_name
-                )
-                self._emit_found(shortcut)
+                # 跳过解析失败的快捷方式，因为无法确定它们是否真的无效
+                # 特别是系统工具快捷方式（如 Control Panel.lnk, Run.lnk）可能会解析失败但实际有效
                 return
 
             is_valid = False
@@ -296,17 +288,28 @@ class WindowsShortcutScanner:
             actual_target_path = target_path
 
             if target_path:
-                if target_path.startswith(('http://', 'https://', 'ftp://', 'mailto:', 'shell:', 'appx:', 'ms-')):
+                # 去除首尾空格
+                target_path_stripped = target_path.strip()
+                target_path_lower = target_path_stripped.lower()
+
+                # 检查是否为URL或特殊协议（不区分大小写）
+                if target_path_lower.startswith(('http://', 'https://', 'ftp://', 'mailto:', 'shell:', 'appx:', 'ms-')):
                     is_valid = True
-                elif os.path.exists(target_path):
+                # 检查是否为UNC路径
+                elif target_path_stripped.startswith('\\\\'):
+                    is_valid = True
+                # 检查文件是否存在
+                elif os.path.exists(target_path_stripped):
                     is_valid = True
                 else:
-                    expanded_path = os.path.expandvars(target_path)
-                    if expanded_path != target_path and os.path.exists(expanded_path):
+                    # 尝试展开环境变量
+                    expanded_path = os.path.expandvars(target_path_stripped)
+                    if expanded_path != target_path_stripped and os.path.exists(expanded_path):
                         is_valid = True
                         actual_target_path = expanded_path
-                    elif working_dir and not os.path.isabs(target_path):
-                        full_path = os.path.join(working_dir, target_path)
+                    # 尝试相对路径
+                    elif working_dir and not os.path.isabs(target_path_stripped):
+                        full_path = os.path.join(working_dir, target_path_stripped)
                         if os.path.exists(full_path):
                             is_valid = True
                             actual_target_path = full_path
