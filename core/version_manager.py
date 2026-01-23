@@ -501,9 +501,9 @@ class UpdateDialog:
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
-        # 如果是强制更新，禁用关闭按钮
+        # 强制更新时也允许关闭，关闭后退出程序
         if self.force_update:
-            self.dialog.protocol("WM_DELETE_WINDOW", self._on_force_close_attempt)
+            self.dialog.protocol("WM_DELETE_WINDOW", self._on_force_update_cancel)
 
         self._create_ui()
 
@@ -616,8 +616,24 @@ class UpdateDialog:
             )
             update_btn.pack(side='left', padx=(20, 10))
 
-            # 如果不是强制更新，显示"稍后提醒"按钮
-            if not self.force_update:
+            # 取消按钮
+            if self.force_update:
+                # 强制更新时显示"取消并退出"按钮
+                cancel_btn = tk.Button(
+                    button_frame,
+                    text="取消并退出",
+                    command=self._on_force_update_cancel,
+                    bg='#95A5A6',
+                    fg='white',
+                    font=('Microsoft YaHei UI', 10),
+                    relief='flat',
+                    cursor='hand2',
+                    padx=20,
+                    pady=10
+                )
+                cancel_btn.pack(side='left', padx=10)
+            else:
+                # 普通更新显示"稍后提醒"按钮
                 later_btn = tk.Button(
                     button_frame,
                     text="稍后提醒",
@@ -656,12 +672,12 @@ class UpdateDialog:
         y = (self.dialog.winfo_screenheight() // 2) - (height // 2)
         self.dialog.geometry(f'{width}x{height}+{x}+{y}')
 
-    def _on_force_close_attempt(self):
-        """强制更新模式下尝试关闭窗口时的处理"""
-        messagebox.showwarning(
-            "强制更新",
-            '此版本包含重要更新，必须更新后才能继续使用程序。\n\n请点击"立即更新"按钮完成更新。'
-        )
+    def _on_force_update_cancel(self):
+        """强制更新取消，关闭软件"""
+        self.dialog.destroy()
+        # 关闭主窗口
+        if self.dialog.master:
+            self.dialog.master.destroy()
 
     def _on_update_click(self):
         """更新按钮点击事件"""
