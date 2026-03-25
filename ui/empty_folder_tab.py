@@ -3,23 +3,27 @@ from typing import List
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from core.file_scanner import FolderInfo, EmptyFolderScannerThread
 from utils.file_utils import try_delete_folder
 
 
 class DeleteFolderThread(threading.Thread):
-    """删除文件夹线程"""
+    """删除文件夹线程 - 使用多线程并发删除"""
 
-    def __init__(self, folders_to_delete: List[tuple]):
+    def __init__(self, folders_to_delete: List[tuple], max_workers: int = 8):
         """
         folders_to_delete: List[(item_id, folder_path), ...]
+        max_workers: 最大并发线程数，默认8
         """
         super().__init__()
         self.folders_to_delete = folders_to_delete
+        self.max_workers = max_workers
         self.running = True
         self.deleted_count = 0
         self.failed_count = 0
         self.error_messages = []
+        self.lock = threading.Lock()  # 线程锁，保护共享变量
 
         # 回调函数
         self.progress_callback = None
@@ -31,25 +35,52 @@ class DeleteFolderThread(threading.Thread):
     def set_finished_callback(self, callback):
         self.finished_callback = callback
 
+    def _delete_single_folder(self, item_id, folder_path):
+        """删除单个文件夹（在线程池中执行）"""
+        if not self.running:
+            return None
+
+        success, message = try_delete_folder(folder_path)
+
+        with self.lock:
+            if success:
+                self.deleted_count += 1
+            else:
+                self.failed_count += 1
+                self.error_messages.append(f"{os.path.basename(folder_path)}: {message}")
+
+        return (item_id, folder_path, success, message)
+
     def run(self):
-        """执行删除任务"""
+        """执行删除任务 - 使用线程池并发删除"""
         try:
-            for item_id, folder_path in self.folders_to_delete:
-                if not self.running:
-                    break
+            total = len(self.folders_to_delete)
+            completed = 0
 
-                success, message = try_delete_folder(folder_path)
+            # 使用线程池并发删除
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                # 提交所有删除任务
+                future_to_folder = {
+                    executor.submit(self._delete_single_folder, item_id, folder_path): (item_id, folder_path)
+                    for item_id, folder_path in self.folders_to_delete
+                }
 
-                if success:
-                    self.deleted_count += 1
-                    # 通知主线程更新UI
-                    if self.progress_callback:
-                        self.progress_callback(item_id, folder_path, True, message)
-                else:
-                    self.failed_count += 1
-                    self.error_messages.append(f"{os.path.basename(folder_path)}: {message}")
-                    if self.progress_callback:
-                        self.progress_callback(item_id, folder_path, False, message)
+                # 处理完成的任务
+                for future in as_completed(future_to_folder):
+                    if not self.running:
+                        # 取消未完成的任务
+                        for f in future_to_folder:
+                            f.cancel()
+                        break
+
+                    result = future.result()
+                    if result:
+                        item_id, folder_path, success, message = result
+                        completed += 1
+
+                        # 通知主线程更新UI
+                        if self.progress_callback:
+                            self.progress_callback(item_id, folder_path, success, message)
 
             # 完成
             if self.finished_callback:
@@ -59,6 +90,10 @@ class DeleteFolderThread(threading.Thread):
             print(f"删除文件夹出错: {e}")
             import traceback
             traceback.print_exc()
+
+            # 即使出错也要调用完成回调
+            if self.finished_callback:
+                self.finished_callback(self.deleted_count, self.failed_count, self.error_messages)
 
     def stop(self):
         """停止删除"""
@@ -539,6 +574,15 @@ class EmptyFolderTab(tk.Frame):
 
     def on_delete_progress(self, item_id, folder_path, success, message):
         """删除进度回调（在主线程中调用）"""
+        # 计算删除进度
+        total = len(self.folder_objects) + self.delete_thread.deleted_count + self.delete_thread.failed_count
+        completed = self.delete_thread.deleted_count + self.delete_thread.failed_count
+        if total > 0:
+            progress = int((completed / total) * 100)
+            self.current_folder_label.config(
+                text=f"正在删除... {completed}/{total} ({progress}%) - 成功: {self.delete_thread.deleted_count}, 失败: {self.delete_thread.failed_count}"
+            )
+
         if success:
             # 从表格中移除
             self.table.delete(item_id)
